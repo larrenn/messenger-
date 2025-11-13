@@ -196,3 +196,4 @@ git push --force-with-lease origin main
 3. **РћС€РёР±РєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ**
    - РџСЂРѕРІРµСЂСЊС‚Рµ URL: `git remote -v`
    - РћР±РЅРѕРІРёС‚Рµ credentials: `git credential reject`
+##  Практические примеры Git
