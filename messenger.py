@@ -544,6 +544,6 @@ if __name__ == "__main__":
     # Устанавливаем фокус на поле ввода
     root.after(100, lambda: app.message_entry.focus_set())
     
-    root.mainloop()
+    root.mainloop() 
 
    
