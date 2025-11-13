@@ -71,7 +71,7 @@ def generate_nickname_with_ip():
                  "Стремительный", "Мощный", "Ловкий", "Хитрый", "Добрый", "Сильный"]
     
     nouns = ["Кот", "Пес", "Тигр", "Лев", "Орел", "Сокол", "Волк", "Медведь", 
-            "Дракон", "Феникс", "Единорог", "Грифон", "Ястреб", "РысЬ", "Сова",
+            "Дракон", "Феникс", "Единорог", "Грифон", "Ястреб", "Рысь", "Сова",
             "Дельфин", "Кит", "Акула", "Скат", "Орёл"]
     
     # Используем хэш IP для детерминированного выбора
@@ -84,292 +84,7 @@ def generate_nickname_with_ip():
     # Формируем имя в формате: Прилагательное_Существительное@IP
     return f"{adjective}_{noun}@{ip}"
 
-class MAXMessengerApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("MAX Messenger")
-        self.root.geometry("400x600")
-        self.root.configure(bg='#2b2b2b')
-        
-        # Генерация ника с IP адресом
-        self.workstation_id = generate_nickname_with_ip()
-        self.messenger = MulticastMessenger(self.workstation_id)
-        
-        self.setup_ui()
-        self.start_listening()
-
-    
-    def setup_enhanced_features(self):
-        """Настройка расширенных функций"""
-        # Создаем меню с быстрыми сообщениями
-        self.predefined_messages = create_predefined_messages()
-        
-        # Создаем пользователя для текущей сессии
-        self.current_user = user_manager.create_user(self.workstation_id)
-        user_manager.user_login(self.current_user)
-        
-        # Добавляем системное сообщение о новых функциях
-        self.add_system_message("Расширенные функции активированы!")
-        self.add_system_message("Доступны: форматирование, история сообщений, управление пользователями")
-
-    def send_formatted_message(self, message, style="normal"):
-        """Отправка форматированного сообщения"""
-        formatted_message = format_message(message, style)
-        self.messenger.send_message(formatted_message)
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        
-        # Добавляем в историю
-        message_history.add_message(self.workstation_id, message, timestamp)
-        user_manager.increment_message_count(self.current_user['user_id'])
-        
-        self.add_message(self.workstation_id, formatted_message, timestamp, is_own=True)
-
-    def search_message_history(self, keyword):
-        """Поиск в истории сообщений"""
-        results = message_history.search_messages(keyword)
-        if results:
-            self.add_system_message(f"Найдено сообщений по запросу '{keyword}': {len(results)}")
-            for msg in results[-5:]:  # Показываем последние 5 результатов
-                self.add_system_message(f"[{msg['timestamp']}] {msg['sender']}: {msg['message']}")
-        else:
-            self.add_system_message(f"Сообщения по запросу '{keyword}' не найдены")
-
-    def show_user_statistics(self):
-        """Показывает статистику пользователя"""
-        stats = user_manager.get_user_stats(self.current_user['user_id'])
-        online_users = user_manager.get_online_users()
-        self.add_system_message(stats)
-        self.add_system_message(f"👥 Пользователей онлайн: {len(online_users)}")
-
-    def send_quick_message(self, message_type):
-        """Отправка предопределенного сообщения"""
-        if message_type in self.predefined_messages:
-            message = self.predefined_messages[message_type]
-            self.send_formatted_message(message)    
-        
-    def setup_ui(self):
-        
-        quick_messages_frame = ttk.Frame(main_frame)
-        quick_messages_frame.pack(fill=tk.X, pady=(5, 10))
-
-        quick_label = tk.Label(quick_messages_frame, text="Быстрые сообщения:", 
-                              font=('Segoe UI', 9), fg='#cccccc', bg=bg_color)
-        quick_label.pack(anchor=tk.W)
-
-        quick_buttons_frame = ttk.Frame(quick_messages_frame)
-        quick_buttons_frame.pack(fill=tk.X, pady=(5, 0))
-
-        # Кнопки быстрых сообщений
-        quick_messages = {
-            "👋": "greeting",
-            "❔": "question", 
-            "✅": "agree",
-            "🙏": "thanks",
-            "🎉": "celebrate"
-        }
-
-        for emoji, msg_type in quick_messages.items():
-            btn = tk.Button(
-                quick_buttons_frame,
-                text=emoji,
-                font=('Segoe UI', 10),
-                bg='#3c3c3c',
-                fg='#ffffff',
-                relief=tk.FLAT,
-                width=3,
-                command=lambda mt=msg_type: self.send_quick_message(mt)
-            )
-            btn.pack(side=tk.LEFT, padx=(0, 5))
-
-        # КНОПКИ ДОПОЛНИТЕЛЬНЫХ ФУНКЦИЙ
-        tools_frame = ttk.Frame(main_frame)
-        tools_frame.pack(fill=tk.X, pady=(5, 0))
-
-        # Кнопка поиска
-        search_btn = tk.Button(
-            tools_frame,
-            text="🔍 Поиск",
-            font=('Segoe UI', 9),
-            bg='#3c3c3c',
-            fg='#ffffff',
-            relief=tk.FLAT,
-            command=self.open_search_dialog
-        )
-        search_btn.pack(side=tk.LEFT, padx=(0, 5))
-
-        # Кнопка статистики
-        stats_btn = tk.Button(
-            tools_frame,
-            text="📊 Статистика",
-            font=('Segoe UI', 9),
-            bg='#3c3c3c',
-            fg='#ffffff',
-            relief=tk.FLAT,
-            command=self.show_user_statistics
-        )
-        stats_btn.pack(side=tk.LEFT, padx=(0, 5))
-
-        # Кнопка стилей сообщений
-        styles_btn = tk.Button(
-            tools_frame,
-            text="🎨 Стили",
-            font=('Segoe UI', 9),
-            bg='#3c3c3c',
-            fg='#ffffff',
-            relief=tk.FLAT,
-            command=self.show_styles_demo
-        )
-        styles_btn.pack(side=tk.LEFT)    
-
-        # Стиль для темной темы MAX
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Настройка цветов
-        bg_color = '#2b2b2b'
-        accent_color = '#0078d7'
-        text_color = '#ffffff'
-        input_bg = '#3c3c3c'
-        
-        # Главный фрейм
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Заголовок
-        header_frame = ttk.Frame(main_frame)
-        header_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        title_label = tk.Label(header_frame, text="MAX Messenger", 
-                              font=('Segoe UI', 16, 'bold'), 
-                              fg=accent_color, bg=bg_color)
-        title_label.pack(side=tk.LEFT)
-        
-        # Информация о пользователе
-        user_label = tk.Label(header_frame, text=f"Вы: {self.workstation_id}", 
-                             font=('Segoe UI', 10), fg=text_color, bg=bg_color)
-        user_label.pack(side=tk.RIGHT)
-        
-        # Область сообщений
-        self.chat_area = scrolledtext.ScrolledText(
-            main_frame, 
-            wrap=tk.WORD,
-            width=50,
-            height=25,
-            font=('Segoe UI', 10),
-            bg=input_bg,
-            fg=text_color,
-            insertbackground=text_color,
-            state=tk.DISABLED
-        )
-        self.chat_area.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        
-        # Фрейм ввода сообщения
-        input_frame = ttk.Frame(main_frame)
-        input_frame.pack(fill=tk.X)
-        
-        self.message_entry = tk.Entry(
-            input_frame,
-            font=('Segoe UI', 10),
-            bg=input_bg,
-            fg=text_color,
-            insertbackground=text_color
-        )
-        self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        self.message_entry.bind('<Return>', self.send_message)
-        
-        self.send_button = tk.Button(
-            input_frame,
-            text="➤",
-            font=('Segoe UI', 12, 'bold'),
-            bg=accent_color,
-            fg=text_color,
-            relief=tk.FLAT,
-            command=self.send_message
-        )
-        self.send_button.pack(side=tk.RIGHT)
-        
-        # Статус бар
-        status_frame = ttk.Frame(main_frame)
-        status_frame.pack(fill=tk.X, pady=(5, 0))
-        
-        self.status_label = tk.Label(
-            status_frame,
-            text="✓ Подключено к сети",
-            font=('Segoe UI', 8),
-            fg='#00ff00',
-            bg=bg_color
-        )
-        self.status_label.pack(side=tk.LEFT)
-        
-        # IP информация
-        ip_info = tk.Label(
-            status_frame,
-            text=f"IP: {get_local_ip()}",
-            font=('Segoe UI', 8),
-            fg='#888888',
-            bg=bg_color
-        )
-        ip_info.pack(side=tk.RIGHT)
-        
-        # Добавляем приветственное сообщение
-        self.add_system_message("Добро пожаловать в MAX Messenger!")
-        self.add_system_message(f"Ваш ник: {self.workstation_id}")
-        self.add_system_message(f"Ваш IP адрес: {get_local_ip()}")
-        
-    def add_message(self, sender, message, timestamp, is_own=False):
-        self.chat_area.config(state=tk.NORMAL)
-        
-        if is_own:
-            # Свои сообщения
-            self.chat_area.insert(tk.END, f"[{timestamp}] ", 'time')
-            self.chat_area.insert(tk.END, "Вы", 'own_sender')
-            self.chat_area.insert(tk.END, f": {message}\n", 'own_message')
-        else:
-            # Сообщения других
-            self.chat_area.insert(tk.END, f"[{timestamp}] ", 'time')
-            self.chat_area.insert(tk.END, f"{sender}", 'other_sender')
-            self.chat_area.insert(tk.END, f": {message}\n", 'other_message')
-        
-        # Настройка тегов для стилизации
-        self.chat_area.tag_configure('time', foreground='#888888')
-        self.chat_area.tag_configure('own_sender', foreground='#0078d7', font=('Segoe UI', 10, 'bold'))
-        self.chat_area.tag_configure('own_message', foreground='#ffffff')
-        self.chat_area.tag_configure('other_sender', foreground='#ff6b00', font=('Segoe UI', 10, 'bold'))
-        self.chat_area.tag_configure('other_message', foreground='#e0e0e0')
-        
-        self.chat_area.config(state=tk.DISABLED)
-        self.chat_area.see(tk.END)
-        
-    def add_system_message(self, message):
-        self.chat_area.config(state=tk.NORMAL)
-        self.chat_area.insert(tk.END, f"● {message}\n", 'system')
-        self.chat_area.tag_configure('system', foreground='#888888', font=('Segoe UI', 9, 'italic'))
-        self.chat_area.config(state=tk.DISABLED)
-        self.chat_area.see(tk.END)
-        
-    def send_message(self, event=None):
-        message = self.message_entry.get().strip()
-        if message:
-            self.messenger.send_message(message)
-            timestamp = datetime.now().strftime('%H:%M:%S')
-            self.add_message(self.workstation_id, message, timestamp, is_own=True)
-            self.message_entry.delete(0, tk.END)
-            
-    def on_message_received(self, workstation, message, timestamp):
-        self.add_message(workstation, message, timestamp, is_own=False)
-        
-    def start_listening(self):
-        self.listener_thread = threading.Thread(
-            target=self.messenger.listen_messages, 
-            args=(self.on_message_received,),
-            daemon=True
-        )
-        self.listener_thread.start()
-        
-    def on_closing(self):
-        self.messenger.running = False
-        self.root.destroy()
-    # =============================================================================
+# =============================================================================
 # НОВЫЕ ФУНКЦИИ ФОРМАТИРОВАНИЯ СООБЩЕНИЙ
 # =============================================================================
 
@@ -532,7 +247,353 @@ def format_duration(seconds):
 
 # Создаем глобальные экземпляры
 user_manager = UserManager()
-message_history = MessageHistory()    
+message_history = MessageHistory()
+
+class MAXMessengerApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("MAX Messenger")
+        self.root.geometry("400x600")
+        self.root.configure(bg='#2b2b2b')
+        
+        # Генерация ника с IP адресом
+        self.workstation_id = generate_nickname_with_ip()
+        self.messenger = MulticastMessenger(self.workstation_id)
+        
+        self.setup_ui()
+        self.start_listening()
+        
+        # Инициализируем расширенные функции
+        self.setup_enhanced_features()
+        
+    def setup_ui(self):
+        # Стиль для темной темы MAX
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # Настройка цветов
+        bg_color = '#2b2b2b'
+        accent_color = '#0078d7'
+        text_color = '#ffffff'
+        input_bg = '#3c3c3c'
+        
+        # Главный фрейм
+        main_frame = ttk.Frame(self.root)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Заголовок
+        header_frame = ttk.Frame(main_frame)
+        header_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        title_label = tk.Label(header_frame, text="MAX Messenger", 
+                              font=('Segoe UI', 16, 'bold'), 
+                              fg=accent_color, bg=bg_color)
+        title_label.pack(side=tk.LEFT)
+        
+        # Информация о пользователе
+        user_label = tk.Label(header_frame, text=f"Вы: {self.workstation_id}", 
+                             font=('Segoe UI', 10), fg=text_color, bg=bg_color)
+        user_label.pack(side=tk.RIGHT)
+        
+        # Область сообщений
+        self.chat_area = scrolledtext.ScrolledText(
+            main_frame, 
+            wrap=tk.WORD,
+            width=50,
+            height=25,
+            font=('Segoe UI', 10),
+            bg=input_bg,
+            fg=text_color,
+            insertbackground=text_color,
+            state=tk.DISABLED
+        )
+        self.chat_area.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        
+        # Фрейм ввода сообщения
+        input_frame = ttk.Frame(main_frame)
+        input_frame.pack(fill=tk.X)
+        
+        self.message_entry = tk.Entry(
+            input_frame,
+            font=('Segoe UI', 10),
+            bg=input_bg,
+            fg=text_color,
+            insertbackground=text_color
+        )
+        self.message_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.message_entry.bind('<Return>', self.send_message)
+        
+        self.send_button = tk.Button(
+            input_frame,
+            text="➤",
+            font=('Segoe UI', 12, 'bold'),
+            bg=accent_color,
+            fg=text_color,
+            relief=tk.FLAT,
+            command=self.send_message
+        )
+        self.send_button.pack(side=tk.RIGHT)
+        
+        # ========== ПАНЕЛЬ БЫСТРЫХ СООБЩЕНИЙ ==========
+        quick_messages_frame = ttk.Frame(main_frame)
+        quick_messages_frame.pack(fill=tk.X, pady=(5, 10))
+
+        quick_label = tk.Label(quick_messages_frame, text="Быстрые сообщения:", 
+                              font=('Segoe UI', 9), fg='#cccccc', bg=bg_color)
+        quick_label.pack(anchor=tk.W)
+
+        quick_buttons_frame = ttk.Frame(quick_messages_frame)
+        quick_buttons_frame.pack(fill=tk.X, pady=(5, 0))
+
+        # Кнопки быстрых сообщений
+        quick_messages = {
+            "👋": "greeting",
+            "❔": "question", 
+            "✅": "agree",
+            "🙏": "thanks",
+            "🎉": "celebrate"
+        }
+
+        for emoji, msg_type in quick_messages.items():
+            btn = tk.Button(
+                quick_buttons_frame,
+                text=emoji,
+                font=('Segoe UI', 10),
+                bg='#3c3c3c',
+                fg='#ffffff',
+                relief=tk.FLAT,
+                width=3,
+                command=lambda mt=msg_type: self.send_quick_message(mt)
+            )
+            btn.pack(side=tk.LEFT, padx=(0, 5))
+
+        # ========== КНОПКИ ДОПОЛНИТЕЛЬНЫХ ФУНКЦИЙ ==========
+        tools_frame = ttk.Frame(main_frame)
+        tools_frame.pack(fill=tk.X, pady=(5, 0))
+
+        # Кнопка поиска
+        search_btn = tk.Button(
+            tools_frame,
+            text="🔍 Поиск",
+            font=('Segoe UI', 9),
+            bg='#3c3c3c',
+            fg='#ffffff',
+            relief=tk.FLAT,
+            command=self.open_search_dialog
+        )
+        search_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+        # Кнопка статистики
+        stats_btn = tk.Button(
+            tools_frame,
+            text="📊 Статистика",
+            font=('Segoe UI', 9),
+            bg='#3c3c3c',
+            fg='#ffffff',
+            relief=tk.FLAT,
+            command=self.show_user_statistics
+        )
+        stats_btn.pack(side=tk.LEFT, padx=(0, 5))
+
+        # Кнопка стилей сообщений
+        styles_btn = tk.Button(
+            tools_frame,
+            text="🎨 Стили",
+            font=('Segoe UI', 9),
+            bg='#3c3c3c',
+            fg='#ffffff',
+            relief=tk.FLAT,
+            command=self.show_styles_demo
+        )
+        styles_btn.pack(side=tk.LEFT)
+        
+        # ========== СТАТУС БАР ==========
+        status_frame = ttk.Frame(main_frame)
+        status_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        self.status_label = tk.Label(
+            status_frame,
+            text="✓ Подключено к сети",
+            font=('Segoe UI', 8),
+            fg='#00ff00',
+            bg=bg_color
+        )
+        self.status_label.pack(side=tk.LEFT)
+        
+        # IP информация
+        ip_info = tk.Label(
+            status_frame,
+            text=f"IP: {get_local_ip()}",
+            font=('Segoe UI', 8),
+            fg='#888888',
+            bg=bg_color
+        )
+        ip_info.pack(side=tk.RIGHT)
+        
+        # Добавляем приветственное сообщение
+        self.add_system_message("Добро пожаловать в MAX Messenger!")
+        self.add_system_message(f"Ваш ник: {self.workstation_id}")
+        self.add_system_message(f"Ваш IP адрес: {get_local_ip()}")
+        
+    def add_message(self, sender, message, timestamp, is_own=False):
+        self.chat_area.config(state=tk.NORMAL)
+        
+        if is_own:
+            # Свои сообщения
+            self.chat_area.insert(tk.END, f"[{timestamp}] ", 'time')
+            self.chat_area.insert(tk.END, "Вы", 'own_sender')
+            self.chat_area.insert(tk.END, f": {message}\n", 'own_message')
+        else:
+            # Сообщения других
+            self.chat_area.insert(tk.END, f"[{timestamp}] ", 'time')
+            self.chat_area.insert(tk.END, f"{sender}", 'other_sender')
+            self.chat_area.insert(tk.END, f": {message}\n", 'other_message')
+        
+        # Настройка тегов для стилизации
+        self.chat_area.tag_configure('time', foreground='#888888')
+        self.chat_area.tag_configure('own_sender', foreground='#0078d7', font=('Segoe UI', 10, 'bold'))
+        self.chat_area.tag_configure('own_message', foreground='#ffffff')
+        self.chat_area.tag_configure('other_sender', foreground='#ff6b00', font=('Segoe UI', 10, 'bold'))
+        self.chat_area.tag_configure('other_message', foreground='#e0e0e0')
+        
+        self.chat_area.config(state=tk.DISABLED)
+        self.chat_area.see(tk.END)
+        
+    def add_system_message(self, message):
+        self.chat_area.config(state=tk.NORMAL)
+        self.chat_area.insert(tk.END, f"● {message}\n", 'system')
+        self.chat_area.tag_configure('system', foreground='#888888', font=('Segoe UI', 9, 'italic'))
+        self.chat_area.config(state=tk.DISABLED)
+        self.chat_area.see(tk.END)
+        
+    def send_message(self, event=None):
+        message = self.message_entry.get().strip()
+        if message:
+            self.messenger.send_message(message)
+            timestamp = datetime.now().strftime('%H:%M:%S')
+            
+            # Добавляем в историю
+            message_history.add_message(self.workstation_id, message, timestamp)
+            if hasattr(self, 'current_user') and self.current_user:
+                user_manager.increment_message_count(self.current_user['user_id'])
+            
+            self.add_message(self.workstation_id, message, timestamp, is_own=True)
+            self.message_entry.delete(0, tk.END)
+            
+    def on_message_received(self, workstation, message, timestamp):
+        # Сохраняем в историю
+        message_history.add_message(workstation, message, timestamp)
+        self.add_message(workstation, message, timestamp, is_own=False)
+        
+    def start_listening(self):
+        self.listener_thread = threading.Thread(
+            target=self.messenger.listen_messages, 
+            args=(self.on_message_received,),
+            daemon=True
+        )
+        self.listener_thread.start()
+        
+    def on_closing(self):
+        self.messenger.running = False
+        self.root.destroy()
+
+    # =============================================================================
+    # НОВЫЕ МЕТОДЫ ДЛЯ РАСШИРЕННЫХ ФУНКЦИЙ
+    # =============================================================================
+
+    def setup_enhanced_features(self):
+        """Настройка расширенных функций"""
+        # Создаем меню с быстрыми сообщениями
+        self.predefined_messages = create_predefined_messages()
+        
+        # Создаем пользователя для текущей сессии
+        self.current_user = user_manager.create_user(self.workstation_id)
+        user_manager.user_login(self.current_user)
+        
+        # Добавляем системное сообщение о новых функциях
+        self.add_system_message("Расширенные функции активированы!")
+        self.add_system_message("Доступны: форматирование, история сообщений, управление пользователями")
+
+    def send_formatted_message(self, message, style="normal"):
+        """Отправка форматированного сообщения"""
+        formatted_message = format_message(message, style)
+        self.messenger.send_message(formatted_message)
+        timestamp = datetime.now().strftime('%H:%M:%S')
+        
+        # Добавляем в историю
+        message_history.add_message(self.workstation_id, message, timestamp)
+        if self.current_user:
+            user_manager.increment_message_count(self.current_user['user_id'])
+        
+        self.add_message(self.workstation_id, formatted_message, timestamp, is_own=True)
+
+    def send_quick_message(self, message_type):
+        """Отправка предопределенного сообщения"""
+        if message_type in self.predefined_messages:
+            message = self.predefined_messages[message_type]
+            self.send_formatted_message(message)
+
+    def search_message_history(self, keyword):
+        """Поиск в истории сообщений"""
+        results = message_history.search_messages(keyword)
+        if results:
+            self.add_system_message(f"Найдено сообщений по запросу '{keyword}': {len(results)}")
+            for msg in results[-5:]:  # Показываем последние 5 результатов
+                self.add_system_message(f"[{msg['timestamp']}] {msg['sender']}: {msg['message']}")
+        else:
+            self.add_system_message(f"Сообщения по запросу '{keyword}' не найдены")
+
+    def show_user_statistics(self):
+        """Показывает статистику пользователя"""
+        if self.current_user:
+            stats = user_manager.get_user_stats(self.current_user['user_id'])
+            online_users = user_manager.get_online_users()
+            self.add_system_message(stats)
+            self.add_system_message(f"👥 Пользователей онлайн: {len(online_users)}")
+
+    def open_search_dialog(self):
+        """Открывает диалог поиска"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Поиск сообщений")
+        dialog.geometry("300x150")
+        dialog.configure(bg='#2b2b2b')
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        tk.Label(dialog, text="Введите слово для поиска:", 
+                font=('Segoe UI', 10), fg='#ffffff', bg='#2b2b2b').pack(pady=10)
+
+        search_entry = tk.Entry(dialog, font=('Segoe UI', 10), 
+                               bg='#3c3c3c', fg='#ffffff', width=30)
+        search_entry.pack(pady=5)
+        search_entry.focus_set()
+
+        def perform_search():
+            keyword = search_entry.get().strip()
+            if keyword:
+                self.search_message_history(keyword)
+                dialog.destroy()
+
+        tk.Button(dialog, text="Найти", font=('Segoe UI', 10),
+                 bg='#0078d7', fg='#ffffff', command=perform_search).pack(pady=10)
+
+        search_entry.bind('<Return>', lambda e: perform_search())
+
+    def show_styles_demo(self):
+        """Показывает демонстрацию стилей сообщений"""
+        demo_text = "Пример текста"
+        styles_demo = {
+            "normal": format_message(demo_text, "normal"),
+            "BOLD": format_message(demo_text, "bold"),
+            "italic": format_message(demo_text, "italic"),
+            "CODE": format_message(demo_text, "code"),
+            "QUOTE": format_message(demo_text, "quote"),
+            "SPOILER": format_message(demo_text, "spoiler")
+        }
+
+        self.add_system_message("Доступные стили сообщений:")
+        for style_name, example in styles_demo.items():
+            self.add_system_message(f"  {style_name}: {example}")
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -544,6 +605,6 @@ if __name__ == "__main__":
     # Устанавливаем фокус на поле ввода
     root.after(100, lambda: app.message_entry.focus_set())
     
-    root.mainloop() 
+    root.mainloop()
 
    
